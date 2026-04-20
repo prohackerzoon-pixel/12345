@@ -67,8 +67,66 @@
     .btn-login:hover{border-color:var(--accent);color:var(--accent);}
     .btn-signup{padding:8px 18px;border-radius:var(--radius-sm);font-size:13px;font-weight:700;background:var(--accent);color:#000;transition:all .2s;}
     .btn-signup:hover{background:var(--accent2);transform:translateY(-1px);}
-    .mob-btn{display:none;background:var(--surface);border:1px solid var(--border);color:var(--muted);width:36px;height:36px;border-radius:var(--radius-sm);font-size:18px;align-items:center;justify-content:center;}
-    @media(max-width:640px){.nav-links{display:none;}.mob-btn{display:flex;}}
+    .mob-btn{display:none;background:var(--surface);border:1px solid var(--border);color:var(--muted);width:36px;height:36px;border-radius:var(--radius-sm);font-size:18px;align-items:center;justify-content:center;transition:all .2s;flex-shrink:0;}
+    .mob-btn:hover{border-color:var(--accent);color:var(--accent);}
+    @media(max-width:640px){.nav-links{display:none;}.nav-btns{display:none;}.mob-btn{display:flex;}}
+
+    /* ── MOBILE MENU DROPDOWN ── */
+    .mob-menu{
+      position:fixed;
+      top:62px;left:0;right:0;
+      z-index:499;
+      background:rgba(13,15,32,.97);
+      backdrop-filter:blur(24px);
+      border-bottom:1px solid var(--border);
+      padding:0 20px;
+      max-height:0;
+      overflow:hidden;
+      transition:max-height .38s cubic-bezier(.4,0,.2,1), padding .38s ease;
+      box-shadow:0 20px 60px rgba(0,0,0,.5);
+    }
+    .mob-menu.open{
+      max-height:520px;
+      padding:16px 20px 24px;
+    }
+    .mob-menu-links{display:flex;flex-direction:column;gap:4px;margin-bottom:16px;}
+    .mob-menu-link{
+      display:flex;align-items:center;gap:10px;
+      padding:13px 16px;
+      border-radius:var(--radius-sm);
+      font-size:15px;font-weight:600;
+      color:var(--text);
+      background:transparent;
+      border:1px solid transparent;
+      transition:all .2s;
+      cursor:pointer;
+    }
+    .mob-menu-link:hover{background:rgba(245,158,11,.07);border-color:rgba(245,158,11,.15);color:var(--accent);}
+    .mob-menu-link .mm-icon{font-size:17px;width:22px;text-align:center;}
+    .mob-menu-divider{height:1px;background:var(--border);margin:8px 0 16px;}
+    .mob-menu-btns{display:flex;flex-direction:column;gap:10px;}
+    .mob-menu-btns .btn-login{
+      display:block;text-align:center;
+      padding:12px;font-size:14px;
+      border-radius:var(--radius-sm);
+    }
+    .mob-menu-btns .btn-signup{
+      display:block;text-align:center;
+      padding:12px;font-size:14px;font-weight:700;
+      background:var(--accent);color:#000;
+      border-radius:var(--radius-sm);
+      transition:all .2s;
+    }
+    .mob-menu-btns .btn-signup:hover{background:var(--accent2);}
+
+    /* Overlay backdrop */
+    .mob-backdrop{
+      display:none;
+      position:fixed;inset:0;
+      z-index:498;
+      background:rgba(0,0,0,.45);
+    }
+    .mob-backdrop.show{display:block;}
 
     /* LAYOUT */
     .container{max-width:1100px;margin:0 auto;padding:0 20px;}
@@ -338,9 +396,28 @@
       <a href="login.html" class="btn-login">Sign In</a>
       <a href="register.html" class="btn-signup">Get Started →</a>
     </div>
-    <button class="mob-btn" id="mob-btn">☰</button>
+    <button class="mob-btn" id="mob-btn" aria-label="Open menu" aria-expanded="false">☰</button>
   </div>
 </nav>
+
+<!-- MOBILE MENU BACKDROP -->
+<div class="mob-backdrop" id="mob-backdrop"></div>
+
+<!-- MOBILE MENU DROPDOWN -->
+<div class="mob-menu" id="mob-menu" aria-hidden="true">
+  <div class="mob-menu-links">
+    <a href="#track"        class="mob-menu-link mob-close"><span class="mm-icon">🔍</span> Track Shipment</a>
+    <a href="#services"     class="mob-menu-link mob-close"><span class="mm-icon">🚚</span> Services</a>
+    <a href="#how"          class="mob-menu-link mob-close"><span class="mm-icon">📋</span> How It Works</a>
+    <a href="#testimonials" class="mob-menu-link mob-close"><span class="mm-icon">⭐</span> Reviews</a>
+    <a href="#faq"          class="mob-menu-link mob-close"><span class="mm-icon">❓</span> FAQ</a>
+  </div>
+  <div class="mob-menu-divider"></div>
+  <div class="mob-menu-btns">
+    <a href="login.html"    class="btn-login">Sign In</a>
+    <a href="register.html" class="btn-signup">🚀 Get Started Free</a>
+  </div>
+</div>
 
 <!-- HERO VIDEO -->
 <section class="hero">
@@ -671,7 +748,7 @@
 <script>
 const API = 'https://bigg.onrender.com/api';
 
-// Loading
+// ── Loading ──────────────────────────────────────────────
 (function(){
   const s=document.getElementById('loading-screen');
   const m=document.getElementById('loading-msg');
@@ -681,15 +758,10 @@ const API = 'https://bigg.onrender.com/api';
   setTimeout(()=>{s.classList.add('hidden');setTimeout(()=>s.remove(),500);},1800);
 })();
 
-// If logged in redirect to dashboard
-if(localStorage.getItem('nxc_user_token')){
-  // Don't redirect — they can still visit landing page
-}
-
-// Navbar scroll
+// ── Navbar scroll ────────────────────────────────────────
 window.addEventListener('scroll',()=>document.getElementById('navbar').classList.toggle('scrolled',scrollY>40));
 
-// Smooth scroll
+// ── Smooth scroll ────────────────────────────────────────
 document.querySelectorAll('a[href^="#"]').forEach(a=>{
   a.addEventListener('click',e=>{
     const id=a.getAttribute('href').slice(1);
@@ -698,7 +770,51 @@ document.querySelectorAll('a[href^="#"]').forEach(a=>{
   });
 });
 
-// Track
+// ── MOBILE MENU ──────────────────────────────────────────
+(function(){
+  const btn      = document.getElementById('mob-btn');
+  const menu     = document.getElementById('mob-menu');
+  const backdrop = document.getElementById('mob-backdrop');
+  let isOpen     = false;
+
+  function openMenu(){
+    isOpen = true;
+    menu.classList.add('open');
+    backdrop.classList.add('show');
+    btn.textContent = '✕';
+    btn.setAttribute('aria-expanded','true');
+    menu.setAttribute('aria-hidden','false');
+    document.body.style.overflow = 'hidden'; // prevent background scroll
+  }
+
+  function closeMenu(){
+    isOpen = false;
+    menu.classList.remove('open');
+    backdrop.classList.remove('show');
+    btn.textContent = '☰';
+    btn.setAttribute('aria-expanded','false');
+    menu.setAttribute('aria-hidden','true');
+    document.body.style.overflow = '';
+  }
+
+  btn.addEventListener('click', function(e){
+    e.stopPropagation();
+    isOpen ? closeMenu() : openMenu();
+  });
+
+  // Close when backdrop is tapped
+  backdrop.addEventListener('click', closeMenu);
+
+  // Close when any menu link is clicked (smooth scroll then close)
+  document.querySelectorAll('.mob-close').forEach(link=>{
+    link.addEventListener('click', ()=>{ closeMenu(); });
+  });
+
+  // Close on Escape key
+  document.addEventListener('keydown', e=>{ if(e.key==='Escape' && isOpen) closeMenu(); });
+})();
+
+// ── Track ────────────────────────────────────────────────
 function tsc(s=''){s=s.toLowerCase();if(s.includes('deliver'))return'delivered';if(s.includes('transit')||s.includes('picked')||s.includes('hub')||s.includes('out for'))return'transit';if(s.includes('pending')||s.includes('registered'))return'pending';return'other';}
 function fdt(d){if(!d)return'';return new Date(d).toLocaleString('en-GB',{day:'2-digit',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'});}
 
@@ -729,7 +845,7 @@ async function doTrack(){
 }
 document.getElementById('t-input')?.addEventListener('keydown',e=>{if(e.key==='Enter')doTrack();});
 
-// Carousel
+// ── Carousel ─────────────────────────────────────────────
 (function(){
   const track=document.getElementById('c-track');
   const dots=document.getElementById('c-dots');
@@ -737,19 +853,13 @@ document.getElementById('t-input')?.addEventListener('keydown',e=>{if(e.key==='E
   const cards=track.querySelectorAll('.c-card');
   let cur=0,maxIdx=3;
   const gap=20;
-
   function setup(){
     const w=track.parentElement.offsetWidth;
     const cw=cards[0]?.offsetWidth||280;
     const vis=Math.max(1,Math.floor((w+gap)/(cw+gap)));
     maxIdx=Math.max(0,cards.length-vis);
     dots.innerHTML='';
-    for(let i=0;i<=maxIdx;i++){
-      const d=document.createElement('div');
-      d.className='c-dot'+(i===0?' active':'');
-      d.onclick=()=>goTo(i);
-      dots.appendChild(d);
-    }
+    for(let i=0;i<=maxIdx;i++){const d=document.createElement('div');d.className='c-dot'+(i===0?' active':'');d.onclick=()=>goTo(i);dots.appendChild(d);}
   }
   function goTo(idx){
     cur=Math.max(0,Math.min(idx,maxIdx));
@@ -764,7 +874,7 @@ document.getElementById('t-input')?.addEventListener('keydown',e=>{if(e.key==='E
   setInterval(()=>goTo(cur>=maxIdx?0:cur+1),4000);
 })();
 
-// Testimonials
+// ── Testimonials ─────────────────────────────────────────
 (function(){
   const track=document.getElementById('tsl-track');
   const dots=document.getElementById('tsl-dots');
@@ -776,13 +886,13 @@ document.getElementById('t-input')?.addEventListener('keydown',e=>{if(e.key==='E
   setInterval(()=>go((cur+1)%slides.length),5000);
 })();
 
-// FAQ
+// ── FAQ ──────────────────────────────────────────────────
 function toggleFaq(q){const item=q.parentElement;const open=item.classList.contains('open');document.querySelectorAll('.faq-item').forEach(i=>i.classList.remove('open'));if(!open)item.classList.add('open');}
 
-// Newsletter
+// ── Newsletter ───────────────────────────────────────────
 function subscribeNl(){const e=document.getElementById('nl-email').value.trim();if(!e){alert('Please enter your email.');return;}document.getElementById('nl-email').value='';alert('✅ Subscribed! Thank you for joining the NexaCargo newsletter.');}
 
-// Chat FAB auto-messages
+// ── Chat FAB ─────────────────────────────────────────────
 const chatMsgs=[
   "👋 Hello! Welcome to NexaCargo. How can we help you today?",
   "🚀 Did you know? We deliver to 200+ countries worldwide!",
@@ -814,7 +924,6 @@ function toggleChat(){
     },800);
   }
 }
-// Auto show chat after 8s
 setTimeout(()=>{
   const popup=document.getElementById('chat-popup');
   if(!popup.classList.contains('show'))popup.classList.add('show');
