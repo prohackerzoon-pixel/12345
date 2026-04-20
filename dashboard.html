@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Dashboard — NexaCargo</title>
+  <link rel="stylesheet" href="assets/styles.css"/>
+</head>
+<body>
+
+<div id="loading-screen">
+  <div class="loading-grid"></div>
+  <div class="loading-rings"><div class="ring ring-1"></div><div class="ring ring-2"></div><div class="ring ring-3"></div><div class="loading-logo">N</div></div>
+  <h1 class="loading-title">NexaCargo</h1>
+  <p class="loading-subtitle">Worldwide Logistics</p>
+  <div class="loading-dots"><span></span><span></span><span></span></div>
+  <p class="loading-msg" id="loading-msg">Loading your dashboard...</p>
+  <p class="loading-tagline">"Delivering Trust, Worldwide"</p>
+</div>
+
+<div class="app-shell" id="app-shell">
+  <div class="main-area">
+    <div class="page-content">
+
+      <!-- Welcome -->
+      <div style="margin-bottom:18px;">
+        <h1 style="font-size:20px;font-weight:800;color:var(--white);">Hello, <span id="welcome-name" style="color:var(--accent);">—</span> 👋</h1>
+        <p style="font-size:12.5px;color:var(--muted);margin-top:3px;">Track your shipments and place new orders from your dashboard.</p>
+      </div>
+
+      <!-- Stats -->
+      <div class="stats-grid">
+        <div class="stat-card">
+          <div class="stat-top"><span class="stat-label">Total Activity</span><span class="stat-icon">📦</span></div>
+          <div class="stat-value white" id="s-total">—</div>
+          <div style="font-size:10.5px;color:var(--faint);margin-top:4px;">Shipments + Requests</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-top"><span class="stat-label">Delivered</span><span class="stat-icon">✅</span></div>
+          <div class="stat-value green" id="s-delivered">—</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-top"><span class="stat-label">In Transit</span><span class="stat-icon">🚚</span></div>
+          <div class="stat-value blue" id="s-transit">—</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-top"><span class="stat-label">Pending / Awaiting</span><span class="stat-icon">⏳</span></div>
+          <div class="stat-value yellow" id="s-pending">—</div>
+          <div style="font-size:10.5px;color:var(--faint);margin-top:4px;">Includes requests</div>
+        </div>
+      </div>
+
+      <!-- Quick Actions -->
+      <div class="section-label">Quick Actions</div>
+      <div class="quick-grid">
+        <div class="quick-btn-item" onclick="location.href='place.html'"><div class="icon">📦</div><span>Place Shipment</span></div>
+        <div class="quick-btn-item" onclick="location.href='track.html'"><div class="icon">📍</div><span>Track Package</span></div>
+        <div class="quick-btn-item" onclick="location.href='chat.html'"><div class="icon">💬</div><span>Chat Support</span></div>
+        <div class="quick-btn-item" onclick="location.href='shipments.html'"><div class="icon">🗂️</div><span>All Shipments</span></div>
+      </div>
+
+      <!-- Quick Track -->
+      <div class="track-box" style="margin-bottom:18px;">
+        <div class="track-box-title">🔍 Quick Track</div>
+        <div class="track-input-row">
+          <input type="text" class="track-input" id="track-input" placeholder="NXC-XXXXXXXX-XXXX"/>
+          <button class="btn btn-primary btn-sm" onclick="quickTrack()">Track</button>
+        </div>
+        <div class="track-error-box" id="track-error"></div>
+        <div class="track-result-box" id="track-result"></div>
+      </div>
+
+      <!-- Recent Activity (Shipments + Requests combined) -->
+      <div class="section-label" style="margin-bottom:10px;">
+        Recent Activity
+        <a href="shipments.html">View all →</a>
+      </div>
+
+      <!-- Pending Requests Banner -->
+      <div id="requests-banner" style="display:none;"></div>
+
+      <!-- Shipments Table -->
+      <div class="card">
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Tracking / Request</th>
+                <th>Destination</th>
+                <th>Status</th>
+                <th>Date</th>
+              </tr>
+            </thead>
+            <tbody id="recent-body">
+              <tr><td colspan="4" class="table-empty">Loading...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<script src="assets/app.js"></script>
+<script src="assets/layout.js"></script>
+<script>
+  if (!Auth.requireAuth()) throw new Error();
+  initLoadingScreen(['Loading your dashboard...','Fetching your data...','Almost ready...'], 2200);
+
+  const user = Auth.getUser();
+  document.getElementById('welcome-name').textContent = user?.name?.split(' ')[0] || 'there';
+
+  document.getElementById('track-input').addEventListener('keydown', e => { if(e.key==='Enter') quickTrack(); });
+
+  async function quickTrack() {
+    const input    = document.getElementById('track-input');
+    const resultEl = document.getElementById('track-result');
+    const errorEl  = document.getElementById('track-error');
+    const trackId  = input.value.trim().toUpperCase();
+    resultEl.classList.remove('show'); errorEl.classList.remove('show');
+    if (!trackId) { errorEl.textContent = 'Please enter a tracking ID.'; errorEl.classList.add('show'); return; }
+    try {
+      const data = await api.get('/track/' + trackId);
+      const s = data.shipment;
+      const sc = trackStatusClass(s.current_status);
+      resultEl.innerHTML = `
+        <div class="track-result-header">
+          <div><div class="tr-id">${s.tracking_id}</div><div class="tr-item">${s.package_description||'Package'} → ${s.receiver_country}</div></div>
+          <div class="tr-status ${sc}">${s.current_status}</div>
+        </div>
+        <div class="track-timeline-box"><div class="timeline">${renderTimeline(data.timeline)}</div></div>`;
+      resultEl.classList.add('show');
+    } catch(e) {
+      errorEl.textContent = e.message || 'Tracking ID not found.';
+      errorEl.classList.add('show');
+    }
+  }
+
+  async function loadDashboard() {
+    const tbody   = document.getElementById('recent-body');
+    const banner  = document.getElementById('requests-banner');
+
+    try {
+      // ── 1. Load shipments dashboard stats ──
+      let shipmentStats = { total: 0, delivered: 0, in_transit: 0, pending: 0 };
+      let recentShipments = [];
+      try {
+        const sd = await api.get('/user/dashboard');
+        shipmentStats   = sd.stats || shipmentStats;
+        recentShipments = sd.recent_shipments || [];
+      } catch(e) { console.warn('Dashboard stats error:', e.message); }
+
+      // ── 2. Load pending requests ──
+      let pendingRequests = [];
+      try {
+        const rd = await api.get('/user/requests');
+        pendingRequests = (rd.requests || []).filter(r => r.status === 'new' || r.status === 'processing');
+      } catch(e) { console.warn('Requests error:', e.message); }
+
+      // ── 3. Calculate combined stats ──
+      const totalActivity = shipmentStats.total + pendingRequests.length;
+      const totalPending  = (shipmentStats.pending || 0) + pendingRequests.length;
+
+      document.getElementById('s-total').textContent     = totalActivity;
+      document.getElementById('s-delivered').textContent = shipmentStats.delivered || 0;
+      document.getElementById('s-transit').textContent   = shipmentStats.in_transit || 0;
+      document.getElementById('s-pending').textContent   = totalPending;
+
+      // ── 4. Show pending requests banner ──
+      if (pendingRequests.length > 0) {
+        banner.style.display = 'block';
+        banner.innerHTML = `
+          <div style="background:rgba(245,158,11,0.08);border:1px solid rgba(245,158,11,0.22);border-radius:var(--radius-sm);padding:12px 16px;margin-bottom:14px;">
+            <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;">
+              <div style="display:flex;align-items:center;gap:9px;">
+                <span style="font-size:18px;">⏳</span>
+                <div>
+                  <div style="font-size:13px;font-weight:700;color:var(--white);">${pendingRequests.length} Pending Request${pendingRequests.length > 1 ? 's' : ''}</div>
+                  <div style="font-size:11.5px;color:var(--muted);margin-top:1px;">Awaiting admin review — we will contact you via chat shortly</div>
+                </div>
+              </div>
+              <span style="font-size:11px;font-weight:600;color:var(--accent);padding:3px 9px;background:rgba(245,158,11,.1);border-radius:20px;">Under Review</span>
+            </div>
+            ${pendingRequests.map(r => `
+              <div style="margin-top:10px;padding-top:10px;border-top:1px solid rgba(245,158,11,.12);display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:6px;">
+                <div>
+                  <div style="font-size:12.5px;color:var(--white);font-weight:600;">${r.delivery_address || '—'}</div>
+                  <div style="font-size:11.5px;color:var(--muted);">To: ${r.delivery_country || '—'} · ${r.package_description ? r.package_description.split('\n')[0].slice(0,40) : '—'}</div>
+                </div>
+                <span style="font-size:11px;color:var(--faint);">${fmtDate(r.created_at)}</span>
+              </div>`).join('')}
+          </div>`;
+      }
+
+      // ── 5. Render recent table ──
+      if (recentShipments.length === 0 && pendingRequests.length === 0) {
+        tbody.innerHTML = `
+          <tr>
+            <td colspan="4" class="table-empty">
+              No activity yet. <a href="place.html" style="color:var(--accent);font-weight:600;">Place your first shipment →</a>
+            </td>
+          </tr>`;
+        return;
+      }
+
+      // Show both shipments and pending requests in the table
+      let rows = '';
+
+      // Shipments first
+      recentShipments.forEach(s => {
+        rows += `
+          <tr>
+            <td>
+              <span class="td-link td-mono" onclick="location.href='shipment-detail.html?id=${s.id}'">${s.tracking_id}</span>
+            </td>
+            <td class="td-muted">${s.receiver_country || '—'}</td>
+            <td>${statusBadge(s.current_status || 'Pending')}</td>
+            <td class="td-faint">${fmtDate(s.created_at)}</td>
+          </tr>`;
+      });
+
+      // Pending requests as rows too
+      pendingRequests.forEach(r => {
+        rows += `
+          <tr>
+            <td>
+              <div style="font-size:12px;font-weight:600;color:var(--muted);">Request Submitted</div>
+              <div style="font-size:10.5px;color:var(--faint);">Awaiting admin processing</div>
+            </td>
+            <td class="td-muted">${r.delivery_country || '—'}</td>
+            <td><span class="badge badge-pending">⏳ Pending Review</span></td>
+            <td class="td-faint">${fmtDate(r.created_at)}</td>
+          </tr>`;
+      });
+
+      tbody.innerHTML = rows || `<tr><td colspan="4" class="table-empty">No activity yet.</td></tr>`;
+
+    } catch(e) {
+      console.error('Dashboard load error:', e.message);
+      tbody.innerHTML = `<tr><td colspan="4" class="table-empty" style="color:var(--danger);">Could not load data. Check connection and try refreshing.</td></tr>`;
+      // Still set stats to 0 instead of leaving as dash
+      ['s-total','s-delivered','s-transit','s-pending'].forEach(id => {
+        document.getElementById(id).textContent = '0';
+      });
+    }
+  }
+
+  document.addEventListener('DOMContentLoaded', () => {
+    initLayout('dashboard');
+    loadDashboard();
+  });
+</script>
+</body>
+</html>
