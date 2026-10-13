@@ -1,4 +1,4 @@
-const API_BASE = 'https://bigg.onrender.com/api';
+const API_BASE = 'https://poko-oabi.onrender.com/api';
 
 // =============================================
 // AUTH
